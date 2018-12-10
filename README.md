@@ -1,6 +1,6 @@
-# #sudoku-multiplayer
+# Multiplayer Sudoku
 A simple distributed multiplayer sudoku game in the terminal, implemented in Python using RPC.
-- - - -
+
 ## Running the server
 From the root directory, run `python2.7 server/serverMain.py`.
 
@@ -8,7 +8,7 @@ An optional `-a` flag followed by the server IP address can be specified. By def
 
 ## Starting up a client
 From the root directory, run `python2.7 client/clientMain.py`.
-- - - -
+
 ## Playing the game
 ### Setup
 Clients guide players through the setup process of the game. Players go through the setup to:
@@ -30,7 +30,7 @@ There are several ways the server decides to end the game:
 * Since there is a minimum number of players required per session, the game ends when **less than two players are left** in the game due to, say, a disconnect.
 
 When the game ends, all the players remaining are notified of the winner and are retuned to the lobby.
-- - - -
+
 ## Brief descriptions of the files
 ### Client
 #### `clientMain.py`
