@@ -9,7 +9,7 @@ WRONG_ANSWER = 0
 RIGHT_ANSWER = 1
 NUMBER_EXISTS = 2
 #GLOBAL variable for the difficulty of the sudoku, the amount of numbers removed.
-LEVEL = 2
+LEVEL = 4
 
 
 #Function for checking if the input meets the requierments of a sudoku.
@@ -111,63 +111,56 @@ class Sudoku():
 #Set_nr checks if the number given suits the solution, if it does,
 # it replaces a zero with the right number, else it returns the corresponding.
     def set_nr(self,a,b,c):
-        if self.current[b,a]!=self.solved[b,a]:
-            self.current[b, a] = c;
-            if self.solved[b,a] == c:
-                return RIGHT_ANSWER
-            else:
-                return WRONG_ANSWER
-        else:
+        if self.current[b,a] == self.solved[b,a]:
             return NUMBER_EXISTS
+
+        if self.solved[b,a] == c:
+            self.current[b,a] = c
+            return RIGHT_ANSWER
+
+        return WRONG_ANSWER
 
 #Checks if the curent table has any zeros left, if not, the game must be over.
     def is_game_over(self):
-        ans=False
-        if ((self.current == self.solved).all()):
-            ans = True
-        else:
-            ans = False
-        return ans
+        return (self.current == self.solved).all()
 
 #Incorporates the design created in the 'Sudoku_design.txt'
 # returns the designed current game table.
     def sudoku_to_string(self):
-        design = """ x-1-2-3---4-5-6---7-8-9
-y╔═══════╦═══════╦═══════╗
-1║ * * * ║ * * * ║ * * * ║
-2║ * * * ║ * * * ║ * * * ║
-3║ * * * ║ * * * ║ * * * ║
-|╠═══════╬═══════╬═══════╣
-4║ * * * ║ * * * ║ * * * ║
-5║ * * * ║ * * * ║ * * * ║
-6║ * * * ║ * * * ║ * * * ║
-|╠═══════╬═══════╬═══════╣
-7║ * * * ║ * * * ║ * * * ║
-8║ * * * ║ * * * ║ * * * ║
-9║ * * * ║ * * * ║ * * * ║
- ╚═══════╩═══════╩═══════╝"""
+        design = """   X 1-2-3   4-5-6   7-8-9
+  Y╔═══════╦═══════╦═══════╗
+  1║ * * * ║ * * * ║ * * * ║
+  2║ * * * ║ * * * ║ * * * ║
+  3║ * * * ║ * * * ║ * * * ║
+   ╠═══════╬═══════╬═══════╣
+  4║ * * * ║ * * * ║ * * * ║
+  5║ * * * ║ * * * ║ * * * ║
+  6║ * * * ║ * * * ║ * * * ║
+   ╠═══════╬═══════╬═══════╣
+  7║ * * * ║ * * * ║ * * * ║
+  8║ * * * ║ * * * ║ * * * ║
+  9║ * * * ║ * * * ║ * * * ║
+   ╚═══════╩═══════╩═══════╝"""
         design = list(design)
 
         out_str = ''
         for i in self.current:
             for j in i:
                 out_str += str(j)
+
         x = 0
         for i in range(len(design)):
-
             if design[i]=='*':
-                design[i]= out_str[x]
+                design[i]= '.' if out_str[x] == '0' else out_str[x]
                 x +=1;
 
-        design= ''.join(design)
-
-        return design
+        return ''.join(design)
 
     def sudoku_to_string_without_table(self):
         out_str = ''
         for i in self.current:
             for j in i:
-                out_str +=(str(j))
+                out_str += (str(j))
         return out_str
 
 #If main, then do this:

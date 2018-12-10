@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Main client file. Upon running asks input from the player
 # and communicates with the server. clientHandler objects are
 # created in serverMain
@@ -32,13 +34,13 @@ class Client():
     )
     # messages notified when client state changes
     __gm_ui_input_prompts = {
-        __gm_states.NEED_NAME : 'Please input user name!',
-        __gm_states.NOTCONNECTED : 'Please enter server IP!',
-        __gm_states.SERVER_REFUSED_NAME : 'Username in use. Enter new one!',
-        __gm_states.NEED_SESSION : 'Join a session!\n'+\
-				'Wish to create new session [y/n]: ',
-        __gm_states.WAIT_FOR_PLAYERS : 'Waiting for players!',
-        __gm_states.NEED_PUTNUMBER : 'Enter x, y, number for Sudoku!'
+        __gm_states.NEED_NAME : 'What\'s your nickname?',
+        __gm_states.NOTCONNECTED : 'What\'s the server\'s IP address?',
+        __gm_states.SERVER_REFUSED_NAME : 'That name is taken, try another one.',
+        __gm_states.NEED_SESSION : '\nWant to [c]reate a new session or [j]oin an existing one?',
+        __gm_states.WAIT_FOR_PLAYERS : 'Waiting for other players...',
+        __gm_states.NEED_PUTNUMBER : '\nEnter column, row, number to fill a spot.\n' + \
+                                     'For example, \'213\' puts \'3\' at (x=2, y=1).'
     }
 
     def __init__(self,io):
@@ -168,7 +170,7 @@ class Client():
                                                           REP_NOT_OK]):
             self.__sync_response(message)
         elif message[:2] == REP_SCORES_GAME_OVER+HEADER_SEP:
-            self.__async_notification('Game ended %s\n' %message[2:])
+            self.__async_notification('The game has ended. %s\n' %message[2:])
             self.__state_change(self.__gm_states.NEED_SESSION)
         else:
             logging.debug('Unknown control message received: %s ' % message)
@@ -190,8 +192,8 @@ class Client():
             for c in user_input:
                 if not c.isalnum():
                     isSuitable = False
-                    break                
-        if not isSuitable:        
+                    break
+        if not isSuitable:
             self.__io.output_sync('Not suitable name')
         else:
             self.__my_name = user_input
@@ -206,10 +208,8 @@ class Client():
             rsp = self.__sync_request(REQ_NICKNAME,self.__my_name)
             header,msg = rsp.split(HEADER_SEP)
             if header == REP_NOT_OK:
-                self.__io.output_sync('Connecting and verifying name failed %s' %msg)
                 self.__state_change(self.__gm_states.SERVER_REFUSED_NAME)
             elif header == REP_CURRENT_SESSIONS:
-                self.__io.output_sync('Name successfully assigned')
                 self.__state_change(self.__gm_states.NEED_SESSION)
         except Exception as e:
             self.__io.output_sync('Name verification by client failed %s'%str(e))
@@ -221,16 +221,15 @@ class Client():
         srv_addr = (ip,7777)
         try:
             self.__s.connect(srv_addr)
-            logging.info('Connected to Game server at %s:%d' \
-                                      % srv_addr)             
+            logging.info('Connected to Game server at %s:%d' % srv_addr)
 
             self.network_thread = \
 		Thread(name='NetworkThread',target=self.network_loop)
             self.network_thread.start()
-            
+
             self.send_server_my_name_get_ack()
         except soc_err as e:
-            logging.error('Can not connect to Game server at %s:%d'\
+            logging.error('Can not connect to game server at %s:%d'\
                       ' %s ' % (srv_addr+(str(e),)))
             self.__io.output_sync('Can\'t connect to server!')
 
@@ -238,28 +237,28 @@ class Client():
         # Asks the player if to create a new session or join an existing one
         # guides the player through the process while checking if the input is
         # valid. Then creates/connects to the session.
-        while create_sess not in ['y','n']:
+        while create_sess not in ['c','j']:
 	    try:
                 create_sess = self.__get_user_input()
             except KeyboardInterrupt:
 		return False
             if create_sess == "Q": return False
-            if create_sess not in ['y','n']:
-                self.__io.output_sync('Please input "y" or "n"...')
-        if create_sess == 'y':
+            if create_sess not in ['c','j']:
+                self.__io.output_sync('Error, enter either \'c\' or \'j\'.')
+        if create_sess == 'c':
             p_count = "0"
             while int(p_count) < 2:
-                self.__io.output_sync('Input max player numbers: ')
+                self.__io.output_sync('How many people are playing?')
                 try:
                     p_count = self.__get_user_input()
 		    if p_count == "Q": return False
                     if int(p_count) < 2:
-                        self.__io.output_sync('Too few players... (minimum 2)')
+                        self.__io.output_sync('Need a minimum of two players!')
                 except KeyboardInterrupt:
 		    return False
 		except:
-                    self.__io.output_sync('Please enter a number')
-        self.__io.output_sync('Enter session name: ')
+                    self.__io.output_sync('Please enter a number.')
+        self.__io.output_sync('What\'s the session\'s name?')
 
         validName = False
         while not validName:
@@ -270,17 +269,16 @@ class Client():
 		return False
             if sess_name == "Q": return False
             if len(sess_name) not in range(1,9):
-                self.__io.output_sync('Name length not in [1...8]')
+                self.__io.output_sync('Length of the name much be in [1..9].')
                 validName = False
             else:
                 for c in sess_name:
                     if not c.isalnum():
-                        self.__io.output_sync(\
-                            'Session name contains illegal chars')
+                        self.__io.output_sync('Session name contains illegal characters.')
                         validName = False
                         break
-                    
-        if create_sess == 'n':
+
+        if create_sess == 'j':
             rsp = self.__sync_request(REQ_JOIN_EXIST_SESS,sess_name)
         else:
             rsp = self.__sync_request(REQ_JOIN_NEW_SESS,sess_name+FIELD_SEP+(p_count))
@@ -291,7 +289,7 @@ class Client():
             elif header == REP_WAITING_PLAYERS:
                 self.__state_change(self.__gm_states.WAIT_FOR_PLAYERS)
             elif header == REP_TABLE:
-                self.__io.output_sync('Game started: \n%s' %rsp[2:])
+                self.__io.output_sync('>>> Game started! \n\n%s' %rsp[2:])
                 self.__state_change(self.__gm_states.NEED_PUTNUMBER)
         except Exception as e:
             self.__io.output_sync('Analysing sess join/create msg fail %s' %str(e))
@@ -311,7 +309,7 @@ class Client():
 
             rsp = self.__rcv_sync_msgs.pop()
         if rsp.startswith(REP_TABLE+HEADER_SEP):
-            self.__io.output_sync('Game started: \n%s' %rsp[2:])
+            self.__io.output_sync('>>> Game started! \n\n%s' %rsp[2:])
             self.__state_change(self.__gm_states.NEED_PUTNUMBER)
 	return True
 
@@ -331,10 +329,10 @@ class Client():
             self.__io.output_sync('Not proper input - cant find three integers')
         rsp = self.__sync_request(REQ_PUT_NR,s)
         if rsp.startswith(REP_PUT_NR+HEADER_SEP):
-            self.__io.output_sync('Quess result: %s' %rsp[2:])
+            self.__io.output_sync('%s' %rsp[2:])
         else:
             self.__io.output_sync('Incorrect server response: (%s)' %rsp)
-        
+
 
     def stop(self):
         # Stop the game client (it's socket and notification thread)
@@ -351,15 +349,13 @@ class Client():
     def game_loop(self):
         # Main game loop (notifications-loop are running already)
         # Networking thread gets started along the way
-        
-        self.__io.output_sync('Press Enter to initiate input, ')
-        self.__io.output_sync(\
-            'Type in your message (or Q to quit), hit Enter to submit')
-        self.__io.output_sync('Please enter username! ')
-        while 1:
+
+        self.__io.output_sync('\nPress Enter ⮐   to initiate input.')
+        self.__io.output_sync('What\'s your nickname?')
+        while True:
             if self.__gm_state != self.__gm_states.WAIT_FOR_PLAYERS:
                 user_input = self.__get_user_input()
-            
+
             if user_input == 'Q':
                 break
             elif self.__gm_state == self.__gm_states.NEED_NAME\
@@ -373,16 +369,14 @@ class Client():
                 if not self.waiting_for_players(): break
             elif self.__gm_state == self.__gm_states.NEED_PUTNUMBER:
                 self.putNumber(user_input)
-        	        
-	
-        self.__io.output_sync('Q entered, disconnecting ...')
+
+        self.__io.output_sync('Queue entered, disconnecting ...')
 
     def notifications_loop(self):
         # Iterate over received notifications, show them to user, wait if
         # no notifications
-
         logging.info('Falling to notifier loop ...')
-        while 1:
+        while True:
             with self.__rcv_async_msgs_lock:
                 if len(self.__rcv_async_msgs) <= 0:
                     self.__rcv_async_msgs_lock.wait()
@@ -395,7 +389,7 @@ class Client():
         # Network Receiver/Message Processor loop. Stops if empty char
         # has been received
         logging.info('Falling to receiver loop ...')
-        while 1:
+        while True:
             m = self.__session_rcv()
             if len(m) <= 0:
                 break
@@ -403,9 +397,9 @@ class Client():
 
 
 if __name__ == '__main__':
-    srv_addr = ('127.0.0.1',7777)
+    srv_addr = ('127.0.0.1', 7777)
 
-    print 'Application start ...'
+    print 'Starting client application...'
 
     sync_io = SyncConsoleAppenderRawInputReader()
     client = Client(sync_io)
@@ -418,7 +412,7 @@ if __name__ == '__main__':
         logging.warn('Ctrl+C issued, terminating ...')
     finally:
         client.stop()
-        
+
     if client.network_thread != None:
         client.network_thread.join()
     notifications_thread.join()

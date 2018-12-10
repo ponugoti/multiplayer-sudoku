@@ -53,15 +53,16 @@ class clientHandler(Thread):
                   '' % (self.soc.getsockname() + (unparsedInts,)))
         try:
             if len(unparsedInts) != 3:
-                return REP_NOT_OK, 'Input is not 3 integers'
+                return REP_NOT_OK, 'The input must contain 3 numbers\n' + \
+                                   'For example, \'213\' puts \'3\' at (x=2, y=1).'
             ints = list(unparsedInts)
             x, y, number = int(ints[0]), int(ints[1]), int(ints[2])
             for n in [x,y,number]:
                 if n not in range(1,10):
-                    REP, MSG = REP_NOT_OK, "nr not in 1...9"
+                    REP, MSG = REP_NOT_OK, "The number must be in [1..9]."
             REP, MSG = self.session.putNumber(x, y, number, self)
         except ValueError:
-            REP, MSG = REP_NOT_OK, "Parsing int failed"
+            REP, MSG = REP_NOT_OK, "Unexpected error: Parsing int failed!"
         return REP, MSG
 
     def rcvMessage(self):
@@ -244,15 +245,17 @@ class clientHandler(Thread):
 
     def run(self):
         # Main client loop
-        while 1:
+        while True:
             m = self.rcvMessage()
             LOG.debug('Raw msg: %s' % m)
             if len(m) <= 0:
                 break
             rsp, msg = self.rcvProtocolMessage(m)
-            if rsp == None: continue
+            if not rsp:
+                continue
             if not self.send_specific(rsp, msg):
                 break
+
         # Client handler closing - remove it from the server and session
         self.exists = False
         if self.session != None:

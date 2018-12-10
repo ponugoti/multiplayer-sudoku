@@ -32,7 +32,7 @@ class serverClass(object):
         # stores list of sessions
         self.sessionListLock = Lock()
         self.sessionList = []
-        
+
     def removeMe(self):
         # Remove the client from server (and from lobby)
         caller = currentThread()
@@ -96,10 +96,10 @@ class serverClass(object):
     def sessionList2string(self):
         # returns a string of sessions on server + player count
         if len(self.getSessions())==0:
-            return 'Available Sessions: None'
-        return 'Available Sessions: %s' %''.join(map(lambda x: '\n  ' +
+            return 'No sessions available. Create one!'
+        return 'Available sessions: %s' %''.join(map(lambda x: '\n    ' +
                         x.getSessInfo(),self.getSessions()))
-         
+
     def removeSession(self,sess):
         # remove a session from server
         with self.sessionListLock:
